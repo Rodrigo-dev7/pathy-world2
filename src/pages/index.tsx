@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, MessageCircle, Send, Heart, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Camera, MessageCircle, Send, Heart, X, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import perfilDark from "../assets/perfil-dark.jpeg";
 import gallery1 from "../assets/bg-user-dark.jpeg";
 import gallery2 from "../assets/bg-light.jpeg";
@@ -40,17 +40,31 @@ const socials = [
 
 const galleryImages = [gallery1, gallery2, gallery3, gallery4, gallery5, gallery6, gallery7, gallery8, gallery9, gallery10, gallery11, gallery12];
 
+const galleryVideos = [
+  { src: "/videos/video-01.mp4", type: "video/mp4" },
+  { src: "/videos/video-02.mp4", type: "video/mp4" },
+  { src: "/videos/video-03.mp4", type: "video/mp4" },
+  { src: "/videos/video-04.mp4", type: "video/mp4" },
+];
+
 const Index = () => {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [videoLightboxIndex, setVideoLightboxIndex] = useState<number | null>(null);
   const lightboxRef = useRef<HTMLDivElement | null>(null);
 
   const openLightbox = (index: number) => setLightboxIndex(index);
-  const closeLightbox = () => setLightboxIndex(null);
+  const openVideoLightbox = (index: number) => setVideoLightboxIndex(index);
+  const closeLightbox = () => {
+    setLightboxIndex(null);
+    setVideoLightboxIndex(null);
+  };
   const prevImage = () => setLightboxIndex((prev) => (prev !== null ? (prev - 1 + galleryImages.length) % galleryImages.length : null));
   const nextImage = () => setLightboxIndex((prev) => (prev !== null ? (prev + 1) % galleryImages.length : null));
+  const prevVideo = () => setVideoLightboxIndex((prev) => (prev !== null ? (prev - 1 + galleryVideos.length) % galleryVideos.length : null));
+  const nextVideo = () => setVideoLightboxIndex((prev) => (prev !== null ? (prev + 1) % galleryVideos.length : null));
 
   useEffect(() => {
-    if (lightboxIndex === null) {
+    if (lightboxIndex === null && videoLightboxIndex === null) {
       return;
     }
 
@@ -60,9 +74,9 @@ const Index = () => {
       if (event.key === "Escape") {
         closeLightbox();
       } else if (event.key === "ArrowLeft") {
-        prevImage();
+        lightboxIndex !== null ? prevImage() : prevVideo();
       } else if (event.key === "ArrowRight") {
-        nextImage();
+        lightboxIndex !== null ? nextImage() : nextVideo();
       }
     };
 
@@ -70,7 +84,7 @@ const Index = () => {
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [lightboxIndex]);
+  }, [lightboxIndex, videoLightboxIndex]);
 
   return (
     <div className="page-shell">
@@ -93,13 +107,13 @@ const Index = () => {
             <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className="link-item">
               <link.icon size={18} className="link-icon" />
               <span>{link.label}</span>
-              <span className="link-arrow">?</span>
+              <span className="link-arrow" aria-hidden="true">›</span>
             </a>
           ))}
         </section>
 
         <section className="gallery-section">
-          <p className="gallery-title">Galeria</p>
+          <p className="gallery-title">Fotos</p>
           <div className="gallery-grid">
             {galleryImages.map((img, i) => (
               <button
@@ -110,6 +124,36 @@ const Index = () => {
                 onClick={() => openLightbox(i)}
               >
                 <img src={img} alt={`Foto ${i + 1}`} loading="lazy" decoding="async" />
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="gallery-section" aria-labelledby="videos-title">
+          <p id="videos-title" className="gallery-title">Vídeos</p>
+          <div className="video-grid">
+            {galleryVideos.map((video, i) => (
+              <button
+                key={video.src}
+                type="button"
+                className="video-item"
+                aria-label={`Reproduzir vídeo ${i + 1}`}
+                onClick={() => openVideoLightbox(i)}
+              >
+                <video
+                  muted
+                  playsInline
+                  preload="metadata"
+                  aria-hidden="true"
+                  onLoadedMetadata={(event) => {
+                    event.currentTarget.currentTime = Math.min(0.1, event.currentTarget.duration || 0.1);
+                  }}
+                >
+                  <source src={video.src} type={video.type} />
+                </video>
+                <span className="video-play" aria-hidden="true">
+                  <Play size={20} fill="currentColor" />
+                </span>
               </button>
             ))}
           </div>
@@ -154,7 +198,7 @@ const Index = () => {
           </button>
           <button
             type="button"
-            aria-label="Pr�xima foto"
+            aria-label="Próxima foto"
             className="lightbox-nav lightbox-next"
             onClick={(e) => {
               e.stopPropagation();
@@ -169,6 +213,58 @@ const Index = () => {
             className="lightbox-image"
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {videoLightboxIndex !== null && (
+        <div
+          ref={lightboxRef}
+          className="lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Reproduzindo vídeo ${videoLightboxIndex + 1} de ${galleryVideos.length}`}
+          tabIndex={-1}
+          onClick={closeLightbox}
+        >
+          <button type="button" aria-label="Fechar vídeo" className="lightbox-close" onClick={closeLightbox}>
+            <X size={18} />
+          </button>
+          <button
+            type="button"
+            aria-label="Vídeo anterior"
+            className="lightbox-nav lightbox-prev"
+            onClick={(event) => {
+              event.stopPropagation();
+              prevVideo();
+            }}
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            type="button"
+            aria-label="Próximo vídeo"
+            className="lightbox-nav lightbox-next"
+            onClick={(event) => {
+              event.stopPropagation();
+              nextVideo();
+            }}
+          >
+            <ChevronRight size={18} />
+          </button>
+          <video
+            key={galleryVideos[videoLightboxIndex].src}
+            className="lightbox-video"
+            controls
+            autoPlay
+            playsInline
+            onClick={(event) => event.stopPropagation()}
+          >
+            <source
+              src={galleryVideos[videoLightboxIndex].src}
+              type={galleryVideos[videoLightboxIndex].type}
+            />
+            Seu navegador não oferece suporte à reprodução deste vídeo.
+          </video>
         </div>
       )}
     </div>
